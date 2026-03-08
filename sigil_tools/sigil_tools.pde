@@ -3,7 +3,7 @@
 // ============================================================
 //
 // Optimized for M1 Max Silicon Macbook Pros.
-// 
+//
 // INPUT (priority order):
 //   1. Live webcam
 //   2. backup_movie_h264.mp4 (in data/ folder)
@@ -98,6 +98,8 @@ int   currentZone    = 0;
 int   radialSegments;
 float radialRotation = 0;
 
+// --- HUD control ---
+boolean displayHUD   = true;
 
 void setup() {
   size(640, 480, P2D);
@@ -123,7 +125,8 @@ void setup() {
     } else {
       println("[SIGIL] No cameras found.");
     }
-  } catch (Exception e) {
+  }
+  catch (Exception e) {
     println("[SIGIL] Webcam init failed: " + e.getMessage());
     try {
       cam = new Capture(this, width, height,
@@ -133,7 +136,8 @@ void setup() {
       camAvailable = true;
       activeSource = "cam";
       println("[SIGIL] Webcam started (pipeline fallback).");
-    } catch (Exception e2) {
+    }
+    catch (Exception e2) {
       println("[SIGIL] Pipeline fallback also failed: " + e2.getMessage());
     }
   }
@@ -148,7 +152,8 @@ void setup() {
       videoAvailable = true;
       if (activeSource.equals("")) activeSource = "video";
       println("[SIGIL] Movie object created, looping.");
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       println("[SIGIL] Movie init failed: " + e.getMessage());
     }
   }
@@ -228,14 +233,24 @@ void draw() {
   }
 
   switch (currentMode) {
-    case 0:  image(frame, 0, 0);           break;
-    case 1:  drawThreshold(frame);          break;
-    case 2:  drawThresholdNewton(frame);    break;
-    case 3:  radialRotation += PARAM_ROTATION_SPEED;
-             drawRadialSymmetry(frame);     break;
+  case 0:
+    image(frame, 0, 0);
+    break;
+  case 1:
+    drawThreshold(frame);
+    break;
+  case 2:
+    drawThresholdNewton(frame);
+    break;
+  case 3:
+    radialRotation += PARAM_ROTATION_SPEED;
+    drawRadialSymmetry(frame);
+    break;
   }
 
-  drawHUD();
+  if (displayHUD) {
+    drawHUD();
+  }
 }
 
 
@@ -338,7 +353,7 @@ void drawRadialSymmetry(PImage src) {
 
 void drawHUD() {
   String[] names = { "0: RAW FEED", "1: THRESHOLD",
-                     "2: THRESHOLD + NEWTON", "3: RADIAL SYMMETRY" };
+    "2: THRESHOLD + NEWTON", "3: RADIAL SYMMETRY" };
 
   fill(0, 180);
   noStroke();
@@ -354,15 +369,15 @@ void drawHUD() {
   String info = "thresh:" + nf(thresholdLevel, 1, 2);
   if (currentMode == 2) {
     info += "  hueSpd:" + nf(PARAM_HUE_SPEED, 1, 3)
-         +  "  sat:" + nf(PARAM_SATURATION, 1, 0);
+      +  "  sat:" + nf(PARAM_SATURATION, 1, 0);
     if (PARAM_COLOR_LOCK >= 0) {
       info += "  lock:" + NEWTON_NAMES[PARAM_COLOR_LOCK];
     }
   }
   if (currentMode == 3) {
     info += "  seg:" + radialSegments
-         +  "  rot:" + nf(PARAM_ROTATION_SPEED, 1, 3)
-         +  "  zoom:" + nf(PARAM_RADIAL_ZOOM, 1, 2);
+      +  "  rot:" + nf(PARAM_ROTATION_SPEED, 1, 3)
+      +  "  zoom:" + nf(PARAM_RADIAL_ZOOM, 1, 2);
   }
   info += "  inv:" + (PARAM_INVERT ? "Y" : "N");
   text(info, 10, 26);
@@ -370,7 +385,7 @@ void drawHUD() {
   // Line 3: active parameter indicator (green)
   fill(180, 255, 180);
   text("[TAB] edit: " + paramNames[activeParam] + "  " + getActiveParamValue()
-    + "    [c]source [s]save [i]invert", 10, 44);
+    + "    [c]source [s]save [i]invert [h] toggle HUD", 10, 44);
 
   // Newton color swatch
   if (currentMode == 2) {
@@ -382,20 +397,27 @@ void drawHUD() {
     fill(0);
     textAlign(CENTER, CENTER);
     text(NEWTON_NAMES[currentZone] + " / " + NEWTON_NOTES[currentZone],
-         width - 50, 30);
+      width - 50, 30);
     textAlign(LEFT, TOP);
   }
 }
 
 String getActiveParamValue() {
   switch (activeParam) {
-    case 0: return nf(thresholdLevel, 1, 2);
-    case 1: return nf(PARAM_HUE_SPEED, 1, 3);
-    case 2: return nf(PARAM_SATURATION, 1, 0);
-    case 3: return PARAM_COLOR_LOCK == -1 ? "CYCLE" : NEWTON_NAMES[PARAM_COLOR_LOCK];
-    case 4: return nf(PARAM_ROTATION_SPEED, 1, 3);
-    case 5: return nf(PARAM_RADIAL_ZOOM, 1, 2);
-    default: return "";
+  case 0:
+    return nf(thresholdLevel, 1, 2);
+  case 1:
+    return nf(PARAM_HUE_SPEED, 1, 3);
+  case 2:
+    return nf(PARAM_SATURATION, 1, 0);
+  case 3:
+    return PARAM_COLOR_LOCK == -1 ? "CYCLE" : NEWTON_NAMES[PARAM_COLOR_LOCK];
+  case 4:
+    return nf(PARAM_ROTATION_SPEED, 1, 3);
+  case 5:
+    return nf(PARAM_RADIAL_ZOOM, 1, 2);
+  default:
+    return "";
   }
 }
 
@@ -406,14 +428,32 @@ String getActiveParamValue() {
 
 void cycleSource() {
   if (activeSource.equals("cam")) {
-    if (videoAvailable) { activeSource = "video"; return; }
-    if (fallbackImage != null) { activeSource = "image"; return; }
+    if (videoAvailable) {
+      activeSource = "video";
+      return;
+    }
+    if (fallbackImage != null) {
+      activeSource = "image";
+      return;
+    }
   } else if (activeSource.equals("video")) {
-    if (fallbackImage != null) { activeSource = "image"; return; }
-    if (camAvailable) { activeSource = "cam"; return; }
+    if (fallbackImage != null) {
+      activeSource = "image";
+      return;
+    }
+    if (camAvailable) {
+      activeSource = "cam";
+      return;
+    }
   } else if (activeSource.equals("image")) {
-    if (camAvailable) { activeSource = "cam"; return; }
-    if (videoAvailable) { activeSource = "video"; return; }
+    if (camAvailable) {
+      activeSource = "cam";
+      return;
+    }
+    if (videoAvailable) {
+      activeSource = "video";
+      return;
+    }
   }
   println("[SIGIL] No other sources available.");
 }
@@ -434,6 +474,11 @@ void keyPressed() {
   if (key == 'c' || key == 'C') {
     cycleSource();
     println("[SIGIL] Switched to: " + activeSource);
+  }
+
+  // Toggle HUD
+  if (key == 'h' || key == 'H') {
+    displayHUD = !displayHUD;
   }
 
   // Save
@@ -462,24 +507,24 @@ void keyPressed() {
   if (keyCode == UP || keyCode == DOWN) {
     float dir = (keyCode == UP) ? 1 : -1;
     switch (activeParam) {
-      case 0:  // THRESHOLD
-        thresholdLevel = constrain(thresholdLevel + dir * 0.05, 0, 1);
-        break;
-      case 1:  // HUE SPEED
-        PARAM_HUE_SPEED = constrain(PARAM_HUE_SPEED + dir * 0.005, 0.001, 0.2);
-        break;
-      case 2:  // SATURATION
-        PARAM_SATURATION = constrain(PARAM_SATURATION + dir * 5, 0, 100);
-        break;
-      case 3:  // COLOR LOCK
-        PARAM_COLOR_LOCK = constrain(PARAM_COLOR_LOCK + (int)dir, -1, 6);
-        break;
-      case 4:  // ROTATION SPEED
-        PARAM_ROTATION_SPEED = constrain(PARAM_ROTATION_SPEED + dir * 0.005, 0.0, 0.1);
-        break;
-      case 5:  // ZOOM
-        PARAM_RADIAL_ZOOM = constrain(PARAM_RADIAL_ZOOM + dir * 0.1, 0.2, 4.0);
-        break;
+    case 0:  // THRESHOLD
+      thresholdLevel = constrain(thresholdLevel + dir * 0.05, 0, 1);
+      break;
+    case 1:  // HUE SPEED
+      PARAM_HUE_SPEED = constrain(PARAM_HUE_SPEED + dir * 0.005, 0.001, 0.2);
+      break;
+    case 2:  // SATURATION
+      PARAM_SATURATION = constrain(PARAM_SATURATION + dir * 5, 0, 100);
+      break;
+    case 3:  // COLOR LOCK
+      PARAM_COLOR_LOCK = constrain(PARAM_COLOR_LOCK + (int)dir, -1, 6);
+      break;
+    case 4:  // ROTATION SPEED
+      PARAM_ROTATION_SPEED = constrain(PARAM_ROTATION_SPEED + dir * 0.005, 0.0, 0.1);
+      break;
+    case 5:  // ZOOM
+      PARAM_RADIAL_ZOOM = constrain(PARAM_RADIAL_ZOOM + dir * 0.1, 0.2, 4.0);
+      break;
     }
   }
 }
