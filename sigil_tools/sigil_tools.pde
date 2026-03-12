@@ -246,6 +246,8 @@ void draw() {
     radialRotation += PARAM_ROTATION_SPEED;
     drawRadialSymmetry(frame);
     break;
+  case 4:
+    
   }
 
   if (displayHUD) {
